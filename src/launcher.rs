@@ -55,7 +55,28 @@ fn parse_desktop_file(path: &Path) -> Option<Entry> {
     if fields.get("Type") != Some(&"Application") || flag("NoDisplay") || flag("Hidden") {
         return None;
     }
-    let exec = fields.get("Exec")?;
+    // Desktop-file string escapes come first (\\ is one backslash, \s a space); the shell-level
+    // quoting that remains is sh-compatible, so sway's `sh -c` can take it as is.
+    let mut exec = String::new();
+    let mut raw_characters = fields.get("Exec")?.chars();
+    while let Some(character) = raw_characters.next() {
+        if character != '\\' {
+            exec.push(character);
+            continue;
+        }
+        match raw_characters.next() {
+            Some('s') => exec.push(' '),
+            Some('n') => exec.push('\n'),
+            Some('t') => exec.push('\t'),
+            Some('r') => exec.push('\r'),
+            Some('\\') => exec.push('\\'),
+            Some(other) => {
+                exec.push('\\');
+                exec.push(other);
+            }
+            None => exec.push('\\'),
+        }
+    }
     let name = fields.get("Name")?;
     // Expand %k (this file's path, e.g. Zotero locates its install dir from it) and %c (name),
     // drop the other field codes (%f, %U, ...), and unescape %%.
