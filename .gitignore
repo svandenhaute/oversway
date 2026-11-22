@@ -1,0 +1,6 @@
+/target
+# Local workaround for a missing libxkbcommon-devel; machine-specific.
+/pkgconfig
+/.cargo
+# Personal agent notes.
+CLAUDE.md
